@@ -1,0 +1,56 @@
+name: CI-CD
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+jobs:
+  CI:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Obtendo o Codigo
+        uses: actions/checkout@v4.2.2
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: ./src
+          push: true
+          file: ./src/Dockerfile
+          tags: |
+            ismael0711/conversao-distancia:v${{ github.run_mumber }}
+            ismael0711/conversao-distancia
+
+  CD:
+    needs: [CI]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Obtendo o codigo
+        uses: actions/checkout@v3
+
+      - uses: azure/k8s-set-context@v4
+        with:
+           method: kubeconfig
+           kubeconfig: ${{ secrets.K8S_KUBECONFIG }}
+
+      - name: Authenticate with Google Cloud
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.GKE_CREDENTIALS }}
+   
+      - name: Set up GKE credentials
+        uses: google-github-actions/get-gke-credentials@v1
+        with:
+          cluster_name: aula-k8s
+          location: us-central1
+          
+      - name: Update deployment file
+        run: |
+          sed -i "s|image: .*|image: ismael0711/conversao-distancia:v1|g" k8s/deployment.yaml
+  
+      - name: Apply deployment
+        run: kubectl apply -f k8s/deployment.yaml
