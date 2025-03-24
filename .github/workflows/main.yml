@@ -20,7 +20,7 @@ jobs:
         with:
           context: ./src
           push: true
-          file: ./src/Dockerfile
+          file: ./Dockerfile
           tags: |
             ismael0711/conversao-distancia:v${{ github.run_mumber }}
             ismael0711/conversao-distancia
@@ -31,11 +31,6 @@ jobs:
     steps:
       - name: Obtendo o codigo
         uses: actions/checkout@v3
-
-      - uses: azure/k8s-set-context@v4
-        with:
-           method: kubeconfig
-           kubeconfig: ${{ secrets.K8S_KUBECONFIG }}
 
       - name: Authenticate with Google Cloud
         uses: google-github-actions/auth@v1
